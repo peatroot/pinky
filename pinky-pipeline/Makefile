@@ -8,8 +8,10 @@ export
 pipeline: download_data_raw
 
 # download raw data
+# (TODO: use pattern matching here)
 download_data_raw: make_data_directory
 	gsutil -m cp $(OT_BUCKET_RELEASES)/$(OT_EVIDENCE_CHEMBL) data/raw/$(OT_EVIDENCE_CHEMBL)
+	gsutil -m cp $(OT_BUCKET_RELEASES)/$(OT_EVIDENCE_GWAS_CATALOG) data/raw/$(OT_EVIDENCE_GWAS_CATALOG)
 
 # ensure directory structure exists
 make_data_directory:
