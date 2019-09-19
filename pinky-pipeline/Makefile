@@ -7,8 +7,16 @@ export
 FILES_EVIDENCE := $(filter OT_EVIDENCE_%, $(.VARIABLES))
 FILES_ANNOTATION_TARGET := $(filter OT_TARGET_ANNOTATION_%, $(.VARIABLES))
 
+FILE_ENTITY_GENE := gene.jsonl
+
 # go for it!
-pipeline: | download_data_raw
+pipeline: create_entities
+
+create_entities: data/processed/$(FILE_ENTITY_GENE)
+
+# build gene entity
+data/processed/$(FILE_ENTITY_GENE): data/raw/$(OT_TARGET_ANNOTATION_HGNC) | download_data_raw
+	jq -c '.response.docs[] | select(.ensembl_gene_id) | {hgncId: .hgnc_id, ensgId: .ensembl_gene_id, symbol: .symbol, name: .name}' $< > $@
 
 # download raw data
 download_data_raw: $(FILES_ANNOTATION_TARGET) $(FILES_EVIDENCE) | make_data_directory
