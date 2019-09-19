@@ -4,16 +4,16 @@
 include .env
 export
 
+EVIDENCE_FILES := $(filter OT_EVIDENCE_%, $(.VARIABLES))
+
 # go for it!
 pipeline: | download_data_raw
 
-
-
 # download raw data
-# (TODO: use pattern matching here)
-download_data_raw: | make_data_directory
-	gsutil -m cp -n $(OT_BUCKET_RELEASES)/$(OT_EVIDENCE_CHEMBL) data/raw/$(OT_EVIDENCE_CHEMBL)
-	gsutil -m cp -n $(OT_BUCKET_RELEASES)/$(OT_EVIDENCE_GWAS_CATALOG) data/raw/$(OT_EVIDENCE_GWAS_CATALOG)
+download_data_raw: data/raw/$(EVIDENCE_FILES) | make_data_directory
+
+data/raw/$(EVIDENCE_FILES):
+	gsutil -m cp -n $(OT_BUCKET_RELEASES)/$($(@F)) data/raw/$($(@F))
 
 # ensure directory structure exists
 make_data_directory:
