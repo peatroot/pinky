@@ -10,10 +10,10 @@ EVIDENCE_FILES := $(filter OT_EVIDENCE_%, $(.VARIABLES))
 pipeline: | download_data_raw
 
 # download raw data
-download_data_raw: data/raw/$(EVIDENCE_FILES) | make_data_directory
+download_data_raw: $(EVIDENCE_FILES) | make_data_directory
 
-data/raw/$(EVIDENCE_FILES):
-	gsutil -m cp -n $(OT_BUCKET_RELEASES)/$($(@F)) data/raw/$($(@F))
+$(EVIDENCE_FILES):
+	gsutil -m cp -n $(OT_BUCKET_RELEASES)/$($@) data/raw/$($@)
 
 # ensure directory structure exists
 make_data_directory:
