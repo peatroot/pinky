@@ -2,6 +2,7 @@
   "Contains custom resolvers and a function to provide the full schema."
   (:require
     [clojure.java.io :as io]
+    [com.stuartsierra.component :as component]
     [com.walmartlabs.lacinia.util :as util]
     [com.walmartlabs.lacinia.schema :as schema]
     [clojure.edn :as edn]))
@@ -31,7 +32,7 @@
           (get data k)))
 
 (defn resolver-map
-  []
+  [component]
   (let [cgg-data (-> (io/resource "data.edn")
                      slurp
                      edn/read-string)
@@ -42,9 +43,23 @@
      :Designer/games (partial resolve-designer-games games-map)}))
 
 (defn load-schema
-  []
+  [component]
   (-> (io/resource "schema.edn")
       slurp
       edn/read-string
-      (util/attach-resolvers (resolver-map))
+      (util/attach-resolvers (resolver-map component))
       schema/compile))
+
+(defrecord SchemaProvider [schema]
+
+  component/Lifecycle
+
+  (start [this]
+    (assoc this :schema (load-schema this)))
+
+  (stop [this]
+    (assoc this :schema nil)))
+
+(defn new-schema-provider
+  []
+  {:schema-provider (map->SchemaProvider {})})
