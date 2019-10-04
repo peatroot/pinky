@@ -29,12 +29,11 @@ data/processed/$(FILE_ENTITY_GENE): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | do
 
 # build protein-protein entity relationships
 data/processed/$(FILE_PPIS): data/raw/$(STRINGDB_LINKS) data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) | download_data_raw
-	gzcat $< | jq --argfile stringDb2Symbol data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) --argfile symbol2Ensembl data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) --raw-input --slurp 'split("\n") | map(split(" ")) | .[1:-1] | map({"gene1": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[0]]], "gene2": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[1]]], "interactionScore": (.[2] | tonumber)})' | gzip > $@
+	gzcat $< | jq --argfile stringDb2Symbol data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) --argfile symbol2Ensembl data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) --raw-input --slurp -c 'split("\n") | map(split(" ")) | .[1:-1] | map({"gene1": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[0]]], "gene2": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[1]]], "interactionScore": (.[2] | tonumber)}) | .[]' | gzip > $@
 
 # build drug mechanisms of action
-# TODO: remove duplicates
 data/processed/$(FILE_MECHANISM_OF_ACTION): data/raw/$(OT_EVIDENCE_CHEMBL) data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL)
-	gzcat $< | head -n50 | jq --argfile uniprot2Ensembl data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL) '{"ensemblId": $$uniprot2Ensembl[0][.target.id | split("/")[-1]], "chemblId": (.drug.id | split("/")[-1]), "mechanismOfActionType": .evidence.target2drug.action_type, "mechanismOfAction": .evidence.target2drug.mechanism_of_action}' | gzip > $@
+	gzcat $< | head -n50 | jq --argfile uniprot2Ensembl data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL) --slurp -c 'map({"ensemblId": $$uniprot2Ensembl[0][.target.id | split("/")[-1]], "chemblId": (.drug.id | split("/")[-1]), "mechanismOfActionType": .evidence.target2drug.action_type, "mechanismOfAction": .evidence.target2drug.mechanism_of_action}) | unique_by(.ensemblId, .chemblId, .mechanismOfAction) | .[]' | gzip > $@
 
 # build look up tables
 data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL): data/raw/$(STRINGDB_INFO) | download_data_raw
