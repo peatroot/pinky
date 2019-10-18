@@ -9,6 +9,7 @@ FILES_ANNOTATION_TARGET := $(filter OT_TARGET_ANNOTATION_%, $(.VARIABLES))
 FILES_STRINGDB := STRINGDB_INFO STRINGDB_LINKS
 
 FILE_ENTITY_GENE := gene.jsonl.gz
+FILE_ENTITY_DRUG := drug.jsonl.gz
 FILE_PPIS := protein-protein-interactions.jsonl.gz
 FILE_MECHANISM_OF_ACTION := mechanism-of-action.jsonl.gz
 
@@ -21,11 +22,15 @@ FILE_LUT_SYMBOL_2_ENSEMBL := symbol-2-ensembl.json
 # go for it!
 pipeline: create_entities
 
-create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION)
+create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_ENTITY_DRUG) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION)
 
 # build gene entity
 data/processed/$(FILE_ENTITY_GENE): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | download_data_raw
 	jq -c '.response.docs[] | select(.ensembl_gene_id) | {hgncId: .hgnc_id, ensgId: .ensembl_gene_id, symbol: .symbol, name: .name}' $< | gzip > $@
+
+# build drug entity
+data/processed/$(FILE_ENTITY_DRUG): data/raw/$(OT_EVIDENCE_CHEMBL)
+	gzcat $< | head -n50 | jq --slurp -c 'map({"chemblId": (.drug.id | split("/")[-1]), "name": .drug.molecule_name}) | unique_by(.chemblId) | .[]' | gzip > $@
 
 # build protein-protein entity relationships
 data/processed/$(FILE_PPIS): data/raw/$(STRINGDB_LINKS) data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) | download_data_raw
