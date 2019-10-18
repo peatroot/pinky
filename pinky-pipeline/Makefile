@@ -12,6 +12,7 @@ FILE_ENTITY_GENE := gene.jsonl.gz
 FILE_ENTITY_DRUG := drug.jsonl.gz
 FILE_PPIS := protein-protein-interactions.jsonl.gz
 FILE_MECHANISM_OF_ACTION := mechanism-of-action.jsonl.gz
+FILE_CLINICAL_TRIAL := clinical-trial.jsonl.gz
 
 # LUTs
 FILE_LUT_STRINGDB_2_SYMBOL := stringdb-2-symbol.json
@@ -22,7 +23,7 @@ FILE_LUT_SYMBOL_2_ENSEMBL := symbol-2-ensembl.json
 # go for it!
 pipeline: create_entities
 
-create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_ENTITY_DRUG) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION)
+create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_ENTITY_DRUG) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION) data/processed/$(FILE_CLINICAL_TRIAL)
 
 # build gene entity
 data/processed/$(FILE_ENTITY_GENE): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | download_data_raw
@@ -30,15 +31,19 @@ data/processed/$(FILE_ENTITY_GENE): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | do
 
 # build drug entity
 data/processed/$(FILE_ENTITY_DRUG): data/raw/$(OT_EVIDENCE_CHEMBL)
-	gzcat $< | head -n50 | jq --slurp -c 'map({"chemblId": (.drug.id | split("/")[-1]), "name": .drug.molecule_name}) | unique_by(.chemblId) | .[]' | gzip > $@
+	gzcat $< | jq --slurp -c 'map({"chemblId": (.drug.id | split("/")[-1]), "name": .drug.molecule_name}) | unique_by(.chemblId) | .[]' | gzip > $@
 
 # build protein-protein entity relationships
 data/processed/$(FILE_PPIS): data/raw/$(STRINGDB_LINKS) data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) | download_data_raw
 	gzcat $< | jq --argfile stringDb2Symbol data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) --argfile symbol2Ensembl data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) --raw-input --slurp -c 'split("\n") | map(split(" ")) | .[1:-1] | map({"gene1": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[0]]], "gene2": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[1]]], "interactionScore": (.[2] | tonumber)}) | .[]' | gzip > $@
 
-# build drug mechanisms of action
+# build gene-drug mechanisms of action entity relationships
 data/processed/$(FILE_MECHANISM_OF_ACTION): data/raw/$(OT_EVIDENCE_CHEMBL) data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL)
-	gzcat $< | head -n50 | jq --argfile uniprot2Ensembl data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL) --slurp -c 'map({"ensemblId": $$uniprot2Ensembl[0][.target.id | split("/")[-1]], "chemblId": (.drug.id | split("/")[-1]), "mechanismOfActionType": .evidence.target2drug.action_type, "mechanismOfAction": .evidence.target2drug.mechanism_of_action}) | unique_by(.ensemblId, .chemblId, .mechanismOfAction) | .[]' | gzip > $@
+	gzcat $< | jq --argfile uniprot2Ensembl data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL) --slurp -c 'map({"ensemblId": $$uniprot2Ensembl[0][.target.id | split("/")[-1]], "chemblId": (.drug.id | split("/")[-1]), "mechanismOfActionType": .evidence.target2drug.action_type, "mechanismOfAction": .evidence.target2drug.mechanism_of_action}) | unique_by(.ensemblId, .chemblId, .mechanismOfAction) | .[]' | gzip > $@
+
+# build drug-disease clinical trial entity relationships
+data/processed/$(FILE_CLINICAL_TRIAL): data/raw/$(OT_EVIDENCE_CHEMBL)
+	gzcat $< | jq --slurp -c 'map({"efoId": (.disease.id | split("/")[-1]), "chemblId": (.drug.id | split("/")[-1]), "clinicalTrialStatus": .evidence.drug2clinic.status, "clinicalTrialPhase": .evidence.drug2clinic.clinical_trial_phase.numeric_index, "clinicalTrialUrl": .evidence.drug2clinic.urls[0].url, "clinicalTrialSource": (.evidence.drug2clinic.urls[0].nice_name | split(" Information")[0])}) | unique_by(.efoId, .chemblId) | .[]' | gzip > $@
 
 # build look up tables
 data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL): data/raw/$(STRINGDB_INFO) | download_data_raw
