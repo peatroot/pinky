@@ -11,6 +11,8 @@ FILES_GENETICS_L2G := OT_GENETICS_ANALYSIS_L2G
 
 FILE_ENTITY_GENE := gene.jsonl.gz
 FILE_ENTITY_DRUG := drug.jsonl.gz
+FILE_ENTITY_VARIANT := variant.jsonl.gz
+FILE_ENTITY_STUDY := study.jsonl.gz
 FILE_PPIS := protein-protein-interactions.jsonl.gz
 FILE_MECHANISM_OF_ACTION := mechanism-of-action.jsonl.gz
 FILE_CLINICAL_TRIAL := clinical-trial.jsonl.gz
@@ -47,10 +49,12 @@ data/processed/$(FILE_MECHANISM_OF_ACTION): data/raw/$(OT_EVIDENCE_CHEMBL) data/
 data/processed/$(FILE_CLINICAL_TRIAL): data/raw/$(OT_EVIDENCE_CHEMBL)
 	gzcat $< | jq --slurp -c 'map({"efoId": (.disease.id | split("/")[-1]), "chemblId": (.drug.id | split("/")[-1]), "clinicalTrialStatus": .evidence.drug2clinic.status, "clinicalTrialPhase": .evidence.drug2clinic.clinical_trial_phase.numeric_index, "clinicalTrialUrl": .evidence.drug2clinic.urls[0].url, "clinicalTrialSource": (.evidence.drug2clinic.urls[0].nice_name | split(" Information")[0])}) | unique_by(.efoId, .chemblId) | .[]' | gzip > $@
 
-# build gene-locus-study entity relationships
-data/processed/$(FILE_LOCUS_2_GENE): data/raw/$(OT_GENETICS_ANALYSIS_L2G)
+# build gene-locus-study entity relationships and variant entity and study entity
+data/processed/$(FILE_ENTITY_VARIANT) data/processed/$(FILE_ENTITY_STUDY) data/processed/$(FILE_LOCUS_2_GENE): data/raw/$(OT_GENETICS_ANALYSIS_L2G)
 	spark-shell -i scripts/locus-to-gene.scala
-	cat data/raw/$(FILE_LOCUS_2_GENE)/*.json | gzip > $@
+	cat data/raw/$(FILE_LOCUS_2_GENE)/*.json | gzip > data/processed/$(FILE_LOCUS_2_GENE)
+	cat data/raw/$(FILE_ENTITY_STUDY)/*.json | gzip > data/processed/$(FILE_ENTITY_STUDY)
+	cat data/raw/$(FILE_ENTITY_VARIANT)/*.json | gzip > data/processed/$(FILE_ENTITY_VARIANT)
 
 # build look up tables
 data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL): data/raw/$(STRINGDB_INFO) # | download_data_raw
