@@ -7,12 +7,14 @@ export
 FILES_EVIDENCE := $(filter OT_EVIDENCE_%, $(.VARIABLES))
 FILES_ANNOTATION_TARGET := $(filter OT_TARGET_ANNOTATION_%, $(.VARIABLES))
 FILES_STRINGDB := STRINGDB_INFO STRINGDB_LINKS
+FILES_GENETICS_L2G := OT_GENETICS_ANALYSIS_L2G
 
 FILE_ENTITY_GENE := gene.jsonl.gz
 FILE_ENTITY_DRUG := drug.jsonl.gz
 FILE_PPIS := protein-protein-interactions.jsonl.gz
 FILE_MECHANISM_OF_ACTION := mechanism-of-action.jsonl.gz
 FILE_CLINICAL_TRIAL := clinical-trial.jsonl.gz
+FILE_LOCUS_2_GENE := locus-to-gene.jsonl.gz
 
 # LUTs
 FILE_LUT_STRINGDB_2_SYMBOL := stringdb-2-symbol.json
@@ -56,7 +58,7 @@ data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL): data/raw/$(OT_TARGET_ANNOTATION_HGNC) | d
 	cat $< | jq '[[.response.docs[] | select(.ensembl_gene_id and .symbol) | {"ensemblId": .ensembl_gene_id, "symbol": .symbol}] | reduce .[] as $$item ({}; .[$$item.symbol] = $$item.ensemblId)]' > $@
 
 # download raw data
-download_data_raw: $(FILES_ANNOTATION_TARGET) $(FILES_EVIDENCE) $(FILES_STRINGDB) | make_data_directory
+download_data_raw: $(FILES_ANNOTATION_TARGET) $(FILES_EVIDENCE) $(FILES_STRINGDB) $(FILES_GENETICS_L2G) | make_data_directory
 
 $(FILES_EVIDENCE):
 	gsutil -m cp -n $(OT_BUCKET_EVIDENCE)/$($@) data/raw/$($@)
@@ -66,6 +68,10 @@ $(FILES_ANNOTATION_TARGET):
 
 $(FILES_STRINGDB):
 	wget -N -q -O data/raw/$($@) $($@_DIR)/$($@)
+
+$(FILES_GENETICS_L2G):
+	mkdir -p data/raw/$($@)
+	gsutil -m cp -nr $(OT_GENETICS_ANALYSIS)/$($@) data/raw/
 
 # ensure directory structure exists
 make_data_directory:
