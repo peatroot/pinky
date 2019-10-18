@@ -25,7 +25,7 @@ FILE_LUT_SYMBOL_2_ENSEMBL := symbol-2-ensembl.json
 # go for it!
 pipeline: create_entities
 
-create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_ENTITY_DRUG) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION) data/processed/$(FILE_CLINICAL_TRIAL)
+create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_ENTITY_DRUG) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION) data/processed/$(FILE_CLINICAL_TRIAL) data/processed/$(FILE_LOCUS_2_GENE)
 
 # build gene entity
 data/processed/$(FILE_ENTITY_GENE): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | download_data_raw
@@ -36,7 +36,7 @@ data/processed/$(FILE_ENTITY_DRUG): data/raw/$(OT_EVIDENCE_CHEMBL)
 	gzcat $< | jq --slurp -c 'map({"chemblId": (.drug.id | split("/")[-1]), "name": .drug.molecule_name}) | unique_by(.chemblId) | .[]' | gzip > $@
 
 # build protein-protein entity relationships
-data/processed/$(FILE_PPIS): data/raw/$(STRINGDB_LINKS) data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) | download_data_raw
+data/processed/$(FILE_PPIS): data/raw/$(STRINGDB_LINKS) data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) # | download_data_raw
 	gzcat $< | jq --argfile stringDb2Symbol data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) --argfile symbol2Ensembl data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) --raw-input --slurp -c 'split("\n") | map(split(" ")) | .[1:-1] | map({"gene1": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[0]]], "gene2": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[1]]], "interactionScore": (.[2] | tonumber)}) | .[]' | gzip > $@
 
 # build gene-drug mechanisms of action entity relationships
@@ -47,14 +47,19 @@ data/processed/$(FILE_MECHANISM_OF_ACTION): data/raw/$(OT_EVIDENCE_CHEMBL) data/
 data/processed/$(FILE_CLINICAL_TRIAL): data/raw/$(OT_EVIDENCE_CHEMBL)
 	gzcat $< | jq --slurp -c 'map({"efoId": (.disease.id | split("/")[-1]), "chemblId": (.drug.id | split("/")[-1]), "clinicalTrialStatus": .evidence.drug2clinic.status, "clinicalTrialPhase": .evidence.drug2clinic.clinical_trial_phase.numeric_index, "clinicalTrialUrl": .evidence.drug2clinic.urls[0].url, "clinicalTrialSource": (.evidence.drug2clinic.urls[0].nice_name | split(" Information")[0])}) | unique_by(.efoId, .chemblId) | .[]' | gzip > $@
 
+# build gene-locus-study entity relationships
+data/processed/$(FILE_LOCUS_2_GENE): data/raw/$(OT_GENETICS_ANALYSIS_L2G)
+	spark-shell -i scripts/locus-to-gene.scala
+	cat data/raw/$(FILE_LOCUS_2_GENE)/*.json | gzip > $@
+
 # build look up tables
-data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL): data/raw/$(STRINGDB_INFO) | download_data_raw
+data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL): data/raw/$(STRINGDB_INFO) # | download_data_raw
 	gzcat $< | jq --raw-input --slurp '[split("\n") | map(split("\t")) | .[1:-1] | map({"stringId": .[0], "symbol": .[1]}) | reduce .[] as $$item ({}; .[$$item.stringId] = $$item.symbol)]' > $@
-data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL): data/raw/$(OT_TARGET_ANNOTATION_HGNC) | download_data_raw
+data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | download_data_raw
 	cat $< | jq '[[.response.docs[] | select(.ensembl_gene_id and .uniprot_ids) | {"ensemblId": .ensembl_gene_id, "uniprotId": .uniprot_ids[0]}] | reduce .[] as $$item ({}; .[$$item.uniprotId] = $$item.ensemblId)]' > $@
-data/raw/$(FILE_LUT_ENSEMBL_2_UNIPROT): data/raw/$(OT_TARGET_ANNOTATION_HGNC) | download_data_raw
+data/raw/$(FILE_LUT_ENSEMBL_2_UNIPROT): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | download_data_raw
 	cat $< | jq '[[.response.docs[] | select(.ensembl_gene_id and .uniprot_ids) | {"ensemblId": .ensembl_gene_id, "uniprotId": .uniprot_ids[0]}] | reduce .[] as $$item ({}; .[$$item.ensemblId] = $$item.uniprotId)]' > $@
-data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL): data/raw/$(OT_TARGET_ANNOTATION_HGNC) | download_data_raw
+data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL): data/raw/$(OT_TARGET_ANNOTATION_HGNC) # | download_data_raw
 	cat $< | jq '[[.response.docs[] | select(.ensembl_gene_id and .symbol) | {"ensemblId": .ensembl_gene_id, "symbol": .symbol}] | reduce .[] as $$item ({}; .[$$item.symbol] = $$item.ensemblId)]' > $@
 
 # download raw data
