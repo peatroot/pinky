@@ -6,5 +6,10 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [com.stuartsierra/component "0.3.2"]
                  [com.walmartlabs/lacinia-pedestal "0.5.0"]
-                 [io.aviso/logging "0.2.0"]]
+                 [io.aviso/logging "0.2.0"]
+                 [com.cerner/clara-rules "0.19.1"]
+                 [cheshire "5.9.0"]]
+  :main ^:skip-aot pinky-api.core
+  :target-path "target/%s"
+  :profiles {:uberjar {:aot :all}}
   :repl-options {:init-ns dev-resources.user})
