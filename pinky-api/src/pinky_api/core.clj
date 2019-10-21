@@ -38,7 +38,7 @@
   [?ensg-id <- Gene (= ?ensg-id ensg-id)]
   [?interactors <- (acc/all :ensg-id-2) :from [ProteinProteinInteraction (= ?ensg-id ensg-id-1)]]
   =>
-  (insert! (->Interactors ?ensg-id ?interactors)))
+  (insert! (->Interactors ?ensg-id (set ?interactors))))
 
 (defquery get-gene-by-symbol
   "Query to find a gene given the symbol."
