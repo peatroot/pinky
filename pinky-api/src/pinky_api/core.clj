@@ -22,17 +22,21 @@
 (def genes (load-json-lines "records/gene.jsonl.gz"))
 (def drugs (load-json-lines "records/drug.jsonl.gz"))
 (def locus-to-genes (load-json-lines "records/locus-to-gene.jsonl.gz"))
+(def mechanism-of-actions (load-json-lines "records/mechanism-of-action.jsonl.gz"))
 (println "Loaded genes (first five displayed):")
 (println (take 5 genes))
 (println "Loaded drugs (first five displayed):")
 (println (take 5 drugs))
 (println "Loaded locus-to-genes (first five displayed):")
 (println (take 5 locus-to-genes))
+(println "Loaded mechanism-of-actions (first five displayed):")
+(println (take 5 mechanism-of-actions))
 
 ; TODO: move to external file (all records)
 (defrecord Gene [ensg-id hgnc-id name symbol])
 (defrecord Drug [chembl-id name])
 (defrecord L2G [ensg-id study-id efo-id variant-id post-prob score])
+(defrecord MechanismOfAction [ensg-id chembl-id type mechanism-of-action])
 ; (defrecord Trait [efo-id name])
 ; (defrecord GeneGeneInteraction [ensg-id-1 ensg-id-2])
 ; (defrecord IsSubTrait [efo-id-1 efo-id-2])
@@ -59,9 +63,14 @@
   [?drug <- Drug (= ?name name)])
 
 (defquery get-loci-for-gene-by-ensg-id
-  "Query to find a drug given the name."
+  "Query to find loci for a gene given the ensgId"
   [:?ensg-id]
   [?l2g <- L2G (= ?ensg-id ensg-id)])
+
+(defquery get-drugs-for-gene-by-ensg-id
+  "Query to find drugs (and MoA) for a gene given the ensgId"
+  [:?ensg-id]
+  [?moa <- MechanismOfAction (= ?ensg-id ensg-id)])
 
 ; (defn print-gene-by-id!
 ;   "Prints a gene given the symbol"
@@ -80,10 +89,12 @@
     (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
     (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
     (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
+    (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
     (fire-rules)
     ; (query get-gene-by-symbol :?symbol "BRAF")
     ; (query get-drug-by-name :?name "BEPRIDIL")
-    (query get-loci-for-gene-by-ensg-id :?ensg-id "ENSG00000086506")
+    ; (query get-loci-for-gene-by-ensg-id :?ensg-id "ENSG00000086506")
+    (query get-drugs-for-gene-by-ensg-id :?ensg-id "ENSG00000000938")
     )
     ; (map println (query get-genes))
     ; (print-gene-by-id!)
