@@ -23,7 +23,7 @@
 (def drugs (load-json-lines "records/drug.jsonl.gz"))
 (def locus-to-genes (load-json-lines "records/locus-to-gene.jsonl.gz"))
 (def mechanism-of-actions (load-json-lines "records/mechanism-of-action.jsonl.gz"))
-(def protein-protein-interactions (load-json-lines "records/protein-protein-interactions.1000000.jsonl.gz"))
+(def protein-protein-interactions (load-json-lines "records/protein-protein-interactions.jsonl.gz"))
 ; (println "Loaded genes (first five displayed):")
 ; (println (take 5 genes))
 ; (println "Loaded drugs (first five displayed):")
@@ -98,7 +98,7 @@
     (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
     (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
     (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
-    (insert-all (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :interactionScore))) protein-protein-interactions))
+    (insert-all (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :score))) protein-protein-interactions))
     (fire-rules))]
     
   (println 
