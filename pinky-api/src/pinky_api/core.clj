@@ -85,17 +85,27 @@
 (defn -main
   "I don't do a whole lot."
   [& args]
-  (println (-> (mk-session 'pinky-api.core)
+  (let [initial-session (-> (mk-session 'pinky-api.core)
     (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
     (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
     (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
     (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
-    (fire-rules)
-    ; (query get-gene-by-symbol :?symbol "BRAF")
+    (fire-rules))]
+    
+  (println 
+    (query initial-session get-gene-by-symbol :?symbol "BRAF"))
+  (println 
+    (query initial-session get-drug-by-name :?name "BEPRIDIL"))
+    )
+
+  ; (println 
+  ;   (query initial-session get-gene-by-symbol :?symbol "BRAF"))
+  ; (println 
+  ;   (query initial-session get-drug-by-name :?name "BEPRIDIL"))
     ; (query get-drug-by-name :?name "BEPRIDIL")
     ; (query get-loci-for-gene-by-ensg-id :?ensg-id "ENSG00000086506")
-    (query get-drugs-for-gene-by-ensg-id :?ensg-id "ENSG00000000938")
-    )
+    ; (query get-drugs-for-gene-by-ensg-id :?ensg-id "ENSG00000000938")
+    
     ; (map println (query get-genes))
     ; (print-gene-by-id!)
     ; (println (query get-gene-by-symbol "BRAF"))
@@ -115,4 +125,4 @@
     ;         (->TraitGeneAssociation "Orphanet_79389" "ENSG00000049167"))
     ; (fire-rules)
     ; (println (get-gene-by-symbol :?symbol "BRAF"))
-    ))
+    )
