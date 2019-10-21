@@ -14,6 +14,7 @@ FILE_ENTITY_DRUG := drug.jsonl.gz
 FILE_ENTITY_VARIANT := variant.jsonl.gz
 FILE_ENTITY_STUDY := study.jsonl.gz
 FILE_PPIS := protein-protein-interactions.jsonl.gz
+# FILE_PROTEIN_INTERACTORS := protein-interactors.jsonl.gz
 FILE_MECHANISM_OF_ACTION := mechanism-of-action.jsonl.gz
 FILE_CLINICAL_TRIAL := clinical-trial.jsonl.gz
 FILE_LOCUS_2_GENE := locus-to-gene.jsonl.gz
@@ -27,6 +28,7 @@ FILE_LUT_SYMBOL_2_ENSEMBL := symbol-2-ensembl.json
 # go for it!
 pipeline: create_entities
 
+# create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_ENTITY_DRUG) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION) data/processed/$(FILE_CLINICAL_TRIAL) data/processed/$(FILE_LOCUS_2_GENE) data/processed/$(FILE_PROTEIN_INTERACTORS)
 create_entities: data/processed/$(FILE_ENTITY_GENE) data/processed/$(FILE_ENTITY_DRUG) data/processed/$(FILE_PPIS) data/processed/$(FILE_MECHANISM_OF_ACTION) data/processed/$(FILE_CLINICAL_TRIAL) data/processed/$(FILE_LOCUS_2_GENE)
 
 # build gene entity
@@ -39,7 +41,10 @@ data/processed/$(FILE_ENTITY_DRUG): data/raw/$(OT_EVIDENCE_CHEMBL)
 
 # build protein-protein entity relationships
 data/processed/$(FILE_PPIS): data/raw/$(STRINGDB_LINKS) data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) # | download_data_raw
-	gzcat $< | jq --argfile stringDb2Symbol data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) --argfile symbol2Ensembl data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) --raw-input --slurp -c 'split("\n") | map(split(" ")) | .[1:-1] | map({"gene1": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[0]]], "gene2": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[1]]], "interactionScore": (.[2] | tonumber)}) | .[]' | gzip > $@
+	gzcat $< | jq --argfile stringDb2Symbol data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) --argfile symbol2Ensembl data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) --raw-input --slurp -c 'split("\n") | map(split(" ")) | .[1:-1] | map({"gene1": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[0]]], "gene2": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[1]]], "score": (.[2] | tonumber)}) | map(select(.score > 700)) | .[]' | gzip > $@
+
+# data/processed/$(FILE_PROTEIN_INTERACTORS): data/raw/$(STRINGDB_LINKS) data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL)
+# 	gzcat $< | jq --argfile stringDb2Symbol data/raw/$(FILE_LUT_STRINGDB_2_SYMBOL) --argfile symbol2Ensembl data/raw/$(FILE_LUT_SYMBOL_2_ENSEMBL) --raw-input --slurp -c 'split("\n") | map(split(" ")) | .[1:-1] | map({"ensgId": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[0]]], "key": $$symbol2Ensembl[0][$$stringDb2Symbol[0][.[1]]], "value": (.[2] | tonumber)}) | (group_by(.ensgId)[] | {(.[0].ensgId): (.[] | .key, .value | from_entries)}) | .[]' | gzip > $@
 
 # build gene-drug mechanisms of action entity relationships
 data/processed/$(FILE_MECHANISM_OF_ACTION): data/raw/$(OT_EVIDENCE_CHEMBL) data/raw/$(FILE_LUT_UNIPROT_2_ENSEMBL)
