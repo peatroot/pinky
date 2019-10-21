@@ -21,10 +21,14 @@
 ; load records into memory
 (def genes (load-json-lines "records/gene.jsonl.gz"))
 (def drugs (load-json-lines "records/drug.jsonl.gz"))
+(println "Loaded genes (first five displayed):")
 (println (take 5 genes))
+(println "Loaded drugs (first five displayed):")
+(println (take 5 drugs))
 
 ; TODO: move to external file (all records)
 (defrecord Gene [ensg-id hgnc-id name symbol])
+(defrecord Drug [chembl-id name])
 ; (defrecord Trait [efo-id name])
 ; (defrecord GeneGeneInteraction [ensg-id-1 ensg-id-2])
 ; (defrecord IsSubTrait [efo-id-1 efo-id-2])
@@ -45,6 +49,11 @@
   [:?symbol]
   [?gene <- Gene (= ?symbol symbol)])
 
+(defquery get-drug-by-name
+  "Query to find a drug given the name."
+  [:?name]
+  [?drug <- Drug (= ?name name)])
+
 ; (defn print-gene-by-id!
 ;   "Prints a gene given the symbol"
 ;   [session]
@@ -60,8 +69,10 @@
   [& args]
   (println (-> (mk-session 'pinky-api.core)
     (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
+    (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
     (fire-rules)
-    (query get-gene-by-symbol :?symbol "BRAF"))
+    ; (query get-gene-by-symbol :?symbol "BRAF")
+    (query get-drug-by-name :?name "BEPRIDIL"))
     ; (map println (query get-genes))
     ; (print-gene-by-id!)
     ; (println (query get-gene-by-symbol "BRAF"))
