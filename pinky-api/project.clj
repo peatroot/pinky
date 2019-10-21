@@ -11,5 +11,6 @@
                  [cheshire "5.9.0"]]
   :main ^:skip-aot pinky-api.core
   :target-path "target/%s"
+  :jvm-opts ["-Xmx8G"]
   :profiles {:uberjar {:aot :all}}
   :repl-options {:init-ns dev-resources.user})
