@@ -40,10 +40,10 @@
 ;     (insert! (->TraitGeneAssociation ?supertrait ?gene))
 ;     (println (str ?supertrait " inferred to be associated with " ?gene)))
 
-; (defquery get-gene-by-symbol
-;   "Query to find a gene given the symbol."
-;   [:?symbol]
-;   [?gene <- Gene (= ?symbol symbol)])
+(defquery get-gene-by-symbol
+  "Query to find a gene given the symbol."
+  [:?symbol]
+  [?gene <- Gene (= ?symbol symbol)])
 
 ; (defn print-gene-by-id!
 ;   "Prints a gene given the symbol"
@@ -58,8 +58,10 @@
 (defn -main
   "I don't do a whole lot."
   [& args]
-  (-> (mk-session 'pinky-api.core)
+  (println (-> (mk-session 'pinky-api.core)
     (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
+    (fire-rules)
+    (query get-gene-by-symbol :?symbol "BRAF"))
     ; (map println (query get-genes))
     ; (print-gene-by-id!)
     ; (println (query get-gene-by-symbol "BRAF"))
