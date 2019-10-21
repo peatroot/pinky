@@ -35,10 +35,17 @@
 
 (defrecord Interactors [ensg-id interactors])
 (defrule get-interactors
-  [?ensg-id <- Gene (= ?ensg-id ensg-id)]
+  [Gene (= ?ensg-id ensg-id)]
   [?interactors <- (acc/all :ensg-id-2) :from [ProteinProteinInteraction (= ?ensg-id ensg-id-1)]]
   =>
   (insert! (->Interactors ?ensg-id (set ?interactors))))
+
+(defrecord DirectGWASGenes [efo-id ensg-ids])
+(defrule get-direct-gwas-genes
+  ; [?ensg-id, ?study-id ?efo-id <- L2G (= ?ensg-id ensg-id) (= ?study-id study-id) (= ?efo-id efo-id)]
+  [?ensg-ids <- (acc/all :ensg-id) :from [L2G (= ?efo-id efo-id)]]
+  =>
+  (insert! (->DirectGWASGenes ?efo-id (set ?ensg-ids))))
 
 (defquery get-gene-by-symbol
   "Query to find a gene given the symbol."
@@ -70,6 +77,11 @@
   [:?ensg-id]
   [?result <- Interactors (= ?ensg-id ensg-id)])
 
+(defquery get-direct-gwas-genes-for-disease-by-efo-id
+  "Query to find direct GWAS genes for a disease given the efoId"
+  [:?efo-id]
+  [?result <- DirectGWASGenes (= ?efo-id efo-id)])
+
 ; ; works
 ; (defquery get-interactors-for-gene-by-ensg-id
 ;   "Query to find interactors for a gene given the ensgId"
@@ -99,6 +111,9 @@
 
     (println
      (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) ; BRAF
+
+    (println
+     (query initial-session get-direct-gwas-genes-for-disease-by-efo-id :?efo-id "EFO_0004527")) ; mean corpuscular hemoglobin
 
     ; (println
     ;   (get (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) :interactors) ; BRAF
