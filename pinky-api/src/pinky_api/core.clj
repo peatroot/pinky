@@ -42,7 +42,6 @@
 
 (defrecord DirectGWASGenes [efo-id ensg-ids])
 (defrule get-direct-gwas-genes
-  ; [?ensg-id, ?study-id ?efo-id <- L2G (= ?ensg-id ensg-id) (= ?study-id study-id) (= ?efo-id efo-id)]
   [?ensg-ids <- (acc/all :ensg-id) :from [L2G (= ?efo-id efo-id)]]
   =>
   (insert! (->DirectGWASGenes ?efo-id (set ?ensg-ids))))
