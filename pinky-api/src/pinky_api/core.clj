@@ -21,14 +21,18 @@
 ; load records into memory
 (def genes (load-json-lines "records/gene.jsonl.gz"))
 (def drugs (load-json-lines "records/drug.jsonl.gz"))
+(def locus-to-genes (load-json-lines "records/locus-to-gene.jsonl.gz"))
 (println "Loaded genes (first five displayed):")
 (println (take 5 genes))
 (println "Loaded drugs (first five displayed):")
 (println (take 5 drugs))
+(println "Loaded locus-to-genes (first five displayed):")
+(println (take 5 locus-to-genes))
 
 ; TODO: move to external file (all records)
 (defrecord Gene [ensg-id hgnc-id name symbol])
 (defrecord Drug [chembl-id name])
+(defrecord L2G [ensg-id study-id efo-id variant-id post-prob score])
 ; (defrecord Trait [efo-id name])
 ; (defrecord GeneGeneInteraction [ensg-id-1 ensg-id-2])
 ; (defrecord IsSubTrait [efo-id-1 efo-id-2])
@@ -54,6 +58,11 @@
   [:?name]
   [?drug <- Drug (= ?name name)])
 
+(defquery get-loci-for-gene-by-ensg-id
+  "Query to find a drug given the name."
+  [:?ensg-id]
+  [?l2g <- L2G (= ?ensg-id ensg-id)])
+
 ; (defn print-gene-by-id!
 ;   "Prints a gene given the symbol"
 ;   [session]
@@ -70,9 +79,12 @@
   (println (-> (mk-session 'pinky-api.core)
     (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
     (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
+    (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
     (fire-rules)
     ; (query get-gene-by-symbol :?symbol "BRAF")
-    (query get-drug-by-name :?name "BEPRIDIL"))
+    ; (query get-drug-by-name :?name "BEPRIDIL")
+    (query get-loci-for-gene-by-ensg-id :?ensg-id "ENSG00000086506")
+    )
     ; (map println (query get-genes))
     ; (print-gene-by-id!)
     ; (println (query get-gene-by-symbol "BRAF"))
