@@ -1,8 +1,8 @@
 (ns pinky-api.core
   (:require
-    [clara.rules.accumulators :as acc]
-    [clara.rules :refer :all]
-    [pinky-api.loader :refer :all]))
+   [clara.rules.accumulators :as acc]
+   [clara.rules :refer :all]
+   [pinky-api.loader :refer :all]))
 
 ; load records into memory
 (def genes (load-json-lines "records/gene.jsonl.gz"))
@@ -36,20 +36,9 @@
 (defrecord Interactors [ensg-id interactors])
 (defrule get-interactors
   [?ensg-id <- Gene (= ?ensg-id ensg-id)]
-  ; [?interactors <- (acc/all :interactor) :from [ProteinProteinInteraction (= ?ensg-id ensg-id-1) (= ?interactor ensg-id-2)]]
   [?interactors <- (acc/all :ensg-id-2) :from [ProteinProteinInteraction (= ?ensg-id ensg-id-1)]]
   =>
   (insert! (->Interactors ?ensg-id ?interactors)))
-
-
-; (defrule propagate-subtrait-association
-;     "An association with gene G of a subtrait S of trait T infers an association of gene G with trait T"
-;     [IsSubTrait (= ?subtrait efo-id-1) (= ?supertrait efo-id-2)]
-;     [TraitGeneAssociation (= ?trait efo-id) (= ?gene ensg-id)]
-;     [:test (= ?subtrait ?trait)]
-;     =>
-;     (insert! (->TraitGeneAssociation ?supertrait ?gene))
-;     (println (str ?supertrait " inferred to be associated with " ?gene)))
 
 (defquery get-gene-by-symbol
   "Query to find a gene given the symbol."
@@ -96,24 +85,23 @@
   "Basic setup."
   [& args]
   (let [initial-session (-> (mk-session 'pinky-api.core)
-      (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
-      (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
-      (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
-      (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
-      (insert-all (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :score))) protein-protein-interactions))
-      (fire-rules))]
-    
+                            (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
+                            (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
+                            (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
+                            (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
+                            (insert-all (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :score))) protein-protein-interactions))
+                            (fire-rules))]
+
     ; (println 
     ;   (query initial-session get-gene-by-symbol :?symbol "BRAF"))
     ; (println 
     ;   (query initial-session get-drug-by-name :?name "BEPRIDIL"))
 
     (println
-      (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) ; BRAF
+     (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) ; BRAF
 
     ; (println
     ;   (get (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) :interactors) ; BRAF
     ; (println
     ;   (get (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000171862")) :interactors) ; PTEN
-  
-      ))
+    ))
