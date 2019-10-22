@@ -1,10 +1,27 @@
 # pinky-api
 
-A Clojure library designed to ... well, that part is up to you.
+An experimental expert system for querying a subset of Open Targets data, built using [clara-rules](http://www.clara-rules.org/).
 
 ## Usage
 
-FIXME
+The `pinky-api` depends on data processed by `pinky-pipeline`, so ensure you have run that first. You should then create a symlink from `pinky-pipeline/data/processed` to `pinky-api/resources/records`.
+
+You can now start the Clojure REPL with `lein repl`.
+
+The base data, record/fact types, inference rules and queries can be loaded into a session object using the following statement, which will take a minute or so.
+
+```
+; see src/pinky_api/core for details
+(def s (load-session))
+```
+
+There are several example base queries (again, see `src/pinky_api/core`), such as `get-gene-by-symbol`. You can use them as follows:
+
+```
+(query s get-gene-by-symbol :?symbol "BRAF")
+```
+
+You should also be able to create new queries and rules in the REPL using the macros `defquery` and `defrule` (see [clara-rules](http://www.clara-rules.org/) for details).
 
 ## License
 
