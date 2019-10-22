@@ -26,6 +26,10 @@ There are several example base queries (see `src/pinky_api/engine.clj`), such as
 
 You should also be able to create new queries and rules in the REPL using the macros `defquery` and `defrule` (see [clara-rules](http://www.clara-rules.org/) for details). Note that triggering new rules requires the use of `(fire-rules s)`.
 
+## Note
+
+There are some files that are currently unused which set up a GraphQL server (using [Lavinia](https://github.com/walmartlabs/lacinia)). The aim is to eventually connect queries to such a server, but the available queries are completely unrelated at this time, coming from the Lavinia tutorial.
+
 ## License
 
 Copyright © 2019 FIXME
