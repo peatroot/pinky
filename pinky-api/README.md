@@ -11,17 +11,20 @@ You can now start the Clojure REPL with `lein repl`.
 The base data, record/fact types, inference rules and queries can be loaded into a session object using the following statement, which will take a minute or so.
 
 ```
-; see src/pinky_api/core for details
+; see src/pinky_api/core.clj for details
 (def s (load-session))
 ```
 
-There are several example base queries (again, see `src/pinky_api/core`), such as `get-gene-by-symbol`. You can use them as follows:
+There are several example base queries (see `src/pinky_api/engine.clj`), such as `get-gene-by-symbol`. You can use them as follows:
 
 ```
 (query s get-gene-by-symbol :?symbol "BRAF")
+(query s get-drug-by-name :?name "BEPRIDIL")
+(query s get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")
+(query s get-direct-gwas-genes-for-disease-by-efo-id :?efo-id "EFO_0004527")
 ```
 
-You should also be able to create new queries and rules in the REPL using the macros `defquery` and `defrule` (see [clara-rules](http://www.clara-rules.org/) for details).
+You should also be able to create new queries and rules in the REPL using the macros `defquery` and `defrule` (see [clara-rules](http://www.clara-rules.org/) for details). Note that triggering new rules requires the use of `(fire-rules s)`.
 
 ## License
 
