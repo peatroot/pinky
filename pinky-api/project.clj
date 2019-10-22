@@ -13,4 +13,5 @@
   :target-path "target/%s"
   :jvm-opts ["-Xmx8G"]
   :profiles {:uberjar {:aot :all}}
-  :repl-options {:init-ns dev-resources.user})
+  ; :repl-options {:init-ns dev-resources.user})
+  :repl-options {:init-ns pinky-api.core})

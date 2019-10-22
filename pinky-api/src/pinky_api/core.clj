@@ -5,11 +5,11 @@
    [pinky-api.loader :refer :all]))
 
 ; load records into memory
-(def genes (load-json-lines "records/gene.jsonl.gz"))
-(def drugs (load-json-lines "records/drug.jsonl.gz"))
-(def locus-to-genes (load-json-lines "records/locus-to-gene.jsonl.gz"))
-(def mechanism-of-actions (load-json-lines "records/mechanism-of-action.jsonl.gz"))
-(def protein-protein-interactions (load-json-lines "records/protein-protein-interactions.jsonl.gz"))
+; (def genes (load-json-lines "records/gene.jsonl.gz"))
+; (def drugs (load-json-lines "records/drug.jsonl.gz"))
+; (def locus-to-genes (load-json-lines "records/locus-to-gene.jsonl.gz"))
+; (def mechanism-of-actions (load-json-lines "records/mechanism-of-action.jsonl.gz"))
+; (def protein-protein-interactions (load-json-lines "records/protein-protein-interactions.jsonl.gz"))
 
 ; TODO: move to external file (all records)
 (defrecord Gene [ensg-id hgnc-id name symbol])
@@ -92,30 +92,59 @@
 ;   ; [?interactors <- (acc/all :interactor) :from [ProteinProteinInteraction (= ?ensg-id ensg-id-1) (= ?interactor ensg-id-2)]]
 ;   [?interactors <- (acc/all :ensg-id-2) :from [ProteinProteinInteraction (= ?ensg-id ensg-id-1)]]
 
-(defn -main
-  "Basic setup."
-  [& args]
-  (let [initial-session (-> (mk-session 'pinky-api.core)
-                            (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
-                            (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
-                            (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
-                            (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
-                            (insert-all (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :score))) protein-protein-interactions))
-                            (fire-rules))]
+; (defsession base-session 'pinky-api.core)
 
-    ; (println 
-    ;   (query initial-session get-gene-by-symbol :?symbol "BRAF"))
-    ; (println 
-    ;   (query initial-session get-drug-by-name :?name "BEPRIDIL"))
+; (defn initialise-session
+;   []
+;   (-> (insert-all base-session (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
+;       (insert-all base-session (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
+;       (insert-all base-session (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
+;       (insert-all base-session (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
+;       (insert-all base-session (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :score))) protein-protein-interactions))
+;       (fire-rules base-session)))
 
-    (println
-     (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) ; BRAF
+; (defsession s0 'pinky-api.core)
 
-    (println
-     (query initial-session get-direct-gwas-genes-for-disease-by-efo-id :?efo-id "EFO_0004527")) ; mean corpuscular hemoglobin
+(defn load-session
+  []
+  (let [genes (load-json-lines "records/gene.jsonl.gz")
+        drugs (load-json-lines "records/drug.jsonl.gz")
+        locus-to-genes (load-json-lines "records/locus-to-gene.jsonl.gz")
+        mechanism-of-actions (load-json-lines "records/mechanism-of-action.jsonl.gz")
+        protein-protein-interactions (load-json-lines "records/protein-protein-interactions.jsonl.gz")
+        s1 (-> (mk-session 'pinky-api.core)
+               (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
+               (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
+               (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
+               (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
+               (insert-all (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :score))) protein-protein-interactions))
+               (fire-rules))]
+    s1))
 
-    ; (println
-    ;   (get (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) :interactors) ; BRAF
-    ; (println
-    ;   (get (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000171862")) :interactors) ; PTEN
-    ))
+; (defn -main
+;   "Basic setup."
+;   [& args]
+;   (let [initial-session (-> (mk-session 'pinky-api.core)
+;                             (insert-all (map (fn [g] (->Gene (g :ensgId) (g :hgncId) (g :name) (g :symbol))) genes))
+;                             (insert-all (map (fn [d] (->Drug (d :chemblId) (d :name))) drugs))
+;                             (insert-all (map (fn [d] (->L2G (d :ensgId) (d :studyId) (d :efoId) (d :variantId) (d :postProb) (d :score))) locus-to-genes))
+;                             (insert-all (map (fn [d] (->MechanismOfAction (d :ensemblId) (d :chemblId) (d :mechanismOfActionType) (d :mechanismOfAction))) mechanism-of-actions))
+;                             (insert-all (map (fn [d] (->ProteinProteinInteraction (d :gene1) (d :gene2) (d :score))) protein-protein-interactions))
+;                             (fire-rules))]
+
+;     ; (println 
+;     ;   (query initial-session get-gene-by-symbol :?symbol "BRAF"))
+;     ; (println 
+;     ;   (query initial-session get-drug-by-name :?name "BEPRIDIL"))
+
+;     (println
+;      (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) ; BRAF
+
+;     (println
+;      (query initial-session get-direct-gwas-genes-for-disease-by-efo-id :?efo-id "EFO_0004527")) ; mean corpuscular hemoglobin
+
+;     ; (println
+;     ;   (get (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000157764")) :interactors) ; BRAF
+;     ; (println
+;     ;   (get (query initial-session get-interactors-for-gene-by-ensg-id :?ensg-id "ENSG00000171862")) :interactors) ; PTEN
+;     ))
